@@ -33,11 +33,3 @@ Feel free to use, modify, and share this tool for your personal amateur radio ne
 
 ---
 
-### Upute za postavljanje na GitHub:
-
-1. U svom GitHub repozitoriju kliknite na **"Add file"** -> **"Create new file"**.
-2. Nazovite datoteku `README.md`.
-3. Kopirajte gornji tekst u uređivač.
-4. Kliknite na **"Commit changes"** na dnu stranice.
-
-To će osigurati da svatko tko posjeti vaš repozitorij odmah zna što alat radi i kako ga pokrenuti.
