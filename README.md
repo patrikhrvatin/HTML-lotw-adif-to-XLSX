@@ -1,5 +1,3 @@
-Evo prijedloga za `README.md` datoteku koju možete postaviti u svoj GitHub repozitorij. Ona je napisana tako da bude jasna i korisna drugim radioamaterima koji traže isto rješenje.
-
 ---
 
 # WAJA LoTW Log Processor
