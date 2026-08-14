@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>JARL WAJA Log Processor & Statistics</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: sans-serif; margin: 40px; background: #f4f7f6; color: #333; }
+        .card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 600px; }
+        .btn { background: #2e7d32; color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 15px; margin-top: 15px; display: none; }
+        .btn:hover { background: #1b5e20; }
+        input[type="file"] { margin-top: 10px; margin-bottom: 15px; display: block; }
+        #status { margin-top: 15px; font-weight: bold; color: #1976d2; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>JARL WAJA - Log Processor & Stats</h2>
+        <p>Select your LoTW ADIF file (e.g., <code>lotwreport.adi</code>):</p>
+        
+        <input type="file" id="adiFileInput" accept=".adi,.txt">
+        <button class="btn" id="downloadBtn" onclick="processAdifAndExcel()">Download Excel with Statistics</button>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+        const PREFECTURES = {
+            "01": "Hokkaido", "02": "Aomori", "03": "Iwate", "04": "Akita", "05": "Yamagata",
+            "06": "Miyagi", "07": "Fukushima", "08": "Niigata", "09": "Nagano", "10": "Tokyo",
+            "11": "Kanagawa", "12": "Chiba", "13": "Saitama", "14": "Ibaraki", "15": "Tochigi",
+            "16": "Gunma", "17": "Yamanashi", "18": "Shizuoka", "19": "Gifu", "20": "Aichi",
+            "21": "Mie", "22": "Kyoto", "23": "Shiga", "24": "Nara", "25": "Osaka",
+            "26": "Wakayama", "27": "Hyogo", "28": "Toyama", "29": "Fukui", "30": "Ishikawa",
+            "31": "Okayama", "32": "Shimane", "33": "Yamaguchi", "34": "Tottori", "35": "Hiroshima",
+            "36": "Kagawa", "37": "Tokushima", "38": "Ehime", "39": "Kochi", "40": "Fukuoka",
+            "41": "Saga", "42": "Nagasaki", "43": "Kumamoto", "44": "Oita", "45": "Miyazaki",
+            "46": "Kagoshima", "47": "Okinawa"
+        };
+
+        const TARGET_BANDS = ['160m', '80m', '40m', '30m', '20m', '17m', '15m', '12m', '10m', '6m'];
+        let fileContent = "";
+
+        document.getElementById('adiFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                fileContent = evt.target.result;
+                document.getElementById('downloadBtn').style.display = 'block';
+                document.getElementById('status').innerText = "File loaded successfully. Click the button to download.";
+            };
+            reader.readAsText(file);
+        });
+
+        function processAdifAndExcel() {
+            if (!fileContent) return;
+
+            let dataStruct = {};
+            TARGET_BANDS.forEach(b => dataStruct[b] = {});
+
+            const records = fileContent.split(/<eor>/i);
+
+            records.forEach(rec => {
+                if (!rec.trim()) return;
+
+                function getField(tag) {
+                    const regex = new RegExp(`<${tag}:?\\d*>([^<\\n/]+)`, 'i');
+                    const match = rec.match(regex);
+                    return match ? match[1].trim() : "";
+                }
+
+                const dxcc = getField("DXCC");
+                const country = getField("COUNTRY");
+                
+                if (dxcc !== "339" && country.toUpperCase() !== "JAPAN") return;
+
+                const band = getField("BAND").toLowerCase();
+                if (!TARGET_BANDS.includes(band)) return;
+
+                const stateRaw = getField("STATE");
+                const stateMatch = stateRaw.match(/\d+/);
+
+                if (stateMatch) {
+                    const prefNum = parseInt(stateMatch[0], 10);
+                    if (prefNum >= 1 && prefNum <= 47) {
+                        const iso = String(prefNum).padStart(2, '0');
+                        if (!dataStruct[band][iso]) {
+                            dataStruct[band][iso] = {
+                                callsign: getField("CALL"),
+                                date: getField("QSO_DATE"),
+                                mode: getField("MODE")
+                            };
+                        }
+                    }
+                }
+            });
+
+            let wb = XLSX.utils.book_new();
+
+            // 1. STATISTICS TAB
+            let statsRows = [];
+            TARGET_BANDS.forEach(band => {
+                let workedCount = Object.keys(dataStruct[band]).length;
+                let missingNames = [];
+
+                for (let i = 1; i <= 47; i++) {
+                    let idx = String(i).padStart(2, '0');
+                    if (!dataStruct[band][idx]) {
+                        missingNames.push(`${idx} - ${PREFECTURES[idx]}`);
+                    }
+                }
+
+                statsRows.push({
+                    "Band": band.toUpperCase(),
+                    "Worked / Total": `${workedCount} / 47`,
+                    "Progress (%)": ((workedCount / 47) * 100).toFixed(1) + "%",
+                    "Missing Prefectures": missingNames.join(", ")
+                });
+            });
+
+            let wsStats = XLSX.utils.json_to_sheet(statsRows);
+            wsStats['!cols'] = [{wch: 10}, {wch: 15}, {wch: 15}, {wch: 60}];
+            XLSX.utils.book_append_sheet(wb, wsStats, "Statistics");
+
+            // 2. BAND TABS
+            TARGET_BANDS.forEach(band => {
+                let rows = [];
+                for (let i = 1; i <= 47; i++) {
+                    let idx = String(i).padStart(2, '0');
+                    let d = dataStruct[band][idx] || { callsign: "", date: "", mode: "" };
+                    rows.push({
+                        "No.": i,
+                        "Callsign": d.callsign,
+                        "Date": d.date,
+                        "Band": band.toUpperCase(),
+                        "Mode": d.mode,
+                        "Prefecture": PREFECTURES[idx]
+                    });
+                }
+
+                let ws = XLSX.utils.json_to_sheet(rows);
+                ws['!cols'] = [{wch: 6}, {wch: 12}, {wch: 12}, {wch: 10}, {wch: 10}, {wch: 20}];
+                XLSX.utils.book_append_sheet(wb, ws, band.toUpperCase());
+            });
+
+            XLSX.writeFile(wb, "WAJA_LoTW_Stats_Bands.xlsx");
+            document.getElementById('status').innerText = "Excel file generated successfully!";
+        }
+    </script>
+</body>
+</html>
