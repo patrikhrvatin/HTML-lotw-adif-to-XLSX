@@ -12,7 +12,7 @@ A simple, client-side web tool to process your **LoTW (Logbook of the World) ADI
 
 ## How to use
 
-1. Download the `waja.html` file from this repository.
+1. Download the `japan_map_prefectures_xls6.html or english version japan_map_prefectures_xls7.html` file from this repository.
 2. Open it in any modern web browser (Chrome, Firefox, Edge, etc.).
 3. Click the **"Choose File"** button and select your `lotwreport.adi` file.
 4. Click **"Download Excel with Statistics"** to generate and save your report.
