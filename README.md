@@ -16,7 +16,7 @@ A simple, client-side web tool to process your **LoTW (Logbook of the World) ADI
 2. **Open** the file in any modern web browser (Chrome, Firefox, Edge, etc.).
 3. Click the **"Choose File"** button and **select your `lotwreport.adi` file**.
 4. Click **"Download Excel with Statistics"** to generate and save your report.
-5. **Copy/paste** all generated data into the original Excel file from the JARL site: `sample-form-2tabs.XLS`.
+5. **Copy/paste** all generated data into the original Excel file from the JARL site: `"sample-form-2tabs.XLS"`.
 
 ## Requirements
 
