@@ -1,5 +1,3 @@
----
-
 # WAJA LoTW Log Processor
 
 A simple, client-side web tool to process your **LoTW (Logbook of the World) ADIF** files and generate a detailed **WAJA (Worked All Japan Award)** status report in Excel format.
